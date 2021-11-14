@@ -1,15 +1,20 @@
 import pandas as pd
+import numpy as np
+ 
 import nltk
 tokenizer = nltk.RegexpTokenizer(r"\w+")
 from nltk.corpus import stopwords
 nltk.download('stopwords')
-
 from nltk.stem import PorterStemmer 
 ps = PorterStemmer()
 
 from collections import defaultdict
 import pickle
-from tqdm import tqdm
+
+from tqdm import tqdm # monitoring progress
+
+import time
+from joblib import Parallel, delayed # parallel processing
 
 
 
@@ -58,13 +63,11 @@ def htmls_by_urls(urls_txt, folder):
 
                 
                 
-## CLEANING FUNCTION---------------------------------------------------------------------------------------------------------/
-def tokenizeandclean(description):
-    # input: string
-    # output: list of filtered words included in the string
-    
-    # to be applied also to the query
-    
+## TOKENIZATION FUNCTION---------------------------------------------------------------------------------------------------------/
+def tokenize(description):
+    # input: anime description string
+    # output: list of tokenized words included in the string
+        
     low_descr = str.lower(description)
     
     # We tokenize the description and remove puncuation
@@ -74,24 +77,50 @@ def tokenizeandclean(description):
     # nltk.download("punkt")
     # no_pun_descr = [word for word in tok_descr if word.isalnum()]
     
+    return tok_descr
+
+
+## CLEANING FUNCTION---------------------------------------------------------------------------------------------------------/
+def clean(tok_descr):
+    # input: list of tokenized words included in the string
+    # output: list of cleaned words included in the string
+    
     # We remove stopwords from tokenized description
-    no_stop_descr = [word for word in tok_descr if not word in stopwords.words()]
+    no_stop_descr = [word for word in tok_descr if not word in stopwords.words('english')]
     
     # We carry out stemming
     stem_descr = [ps.stem(i) for i in no_stop_descr]
     
     # We remove isolated characters
     final_descr = [i for i in stem_descr if len(i) > 1]
-    
-    return final_descr
+        
+    return final_descr 
 
+
+## FAST CLEANING FUNCTION---------------------------------------------------------------------------------------------------------/
+def clean_fast(tok_descr):
+    # Please note: by using intersection of sets instead of list comprehension we lose repeated words within the same description - used to generate dictionaries
+    
+    # input: list of tokenized words included in the string
+    # output: list of cleaned words included in the string
+    
+    # We remove stopwords from tokenized description
+    no_stop_descr = list(set(tok_descr) - (set(tok_descr) & set(stopwords.words('english'))))
+    
+    # We carry out stemming
+    stem_descr = [ps.stem(i) for i in no_stop_descr]
+    
+    # We remove isolated characters
+    final_descr = [i for i in stem_descr if len(i) > 1]
+        
+    return list(set(final_descr))    
 
 
 ## DICTIONARIES GENERATION---------------------------------------------------------------------------------------------------------/
 def dictionaries(dataset):
     # input: anime_df dataframe
     # output 1: the dictionary word_2_id maps word to word identification integer  
-    # output 2: the inverted index dictionary id_2_anime maps word identification integer to list of indexes (main dataset indexes) of anime whose cleaned description contains the word identified by the integer
+    # output 2: the inverted index dictionary id_2_anime maps word identification integer to list of indexes (main dataset indexes) of anime
 
     word_2_id = defaultdict()
     word_2_id['a'] = 0
@@ -100,15 +129,15 @@ def dictionaries(dataset):
         
     for i in tqdm(range(len(dataset))):
         
-        tok_list = tokenizeandclean(dataset['Description'][i])
+        final_list = clean_fast(tokenize(dataset['Description'][i]))    
         
-        if tok_list == []:
+        if final_list == []:
             
             pass
         
         else:
 
-            for j in list(set(tok_list)):
+            for j in final_list:
 
                 if j not in word_2_id.keys():
 
@@ -156,7 +185,7 @@ def search_engine(query):
         
     anime_intersection = list(set.intersection(*listoflists))
     
-    return anime_intersection
+    return sorted(anime_intersection)
 
 
 ## Calculate the value TfIdf----------------------------------------------------------------------------------------------------------------------/
