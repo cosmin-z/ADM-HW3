@@ -124,11 +124,12 @@ def createFolders(nameMainFolder,numberSubFolders):
     
 
 # Get htmls by urls -----------------------------------------------------------------------------------------------------------------------/
+#these data are useful because they allow us to dinwload more data without seem bot for the server
 headers = {
     'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36",
     'accept': "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
     'referer': "https://myanimelist.net/"
-} #these data are useful because they allow us to dinwload more data without seem bot for the server
+}
 
 def htmls_by_urls(urls_txt, folder):
      # urls_txt: string 'https.txt' from previous task
