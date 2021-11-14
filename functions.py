@@ -1,18 +1,16 @@
 import pandas as pd
 import numpy as np
- 
+import os 
 import nltk
 tokenizer = nltk.RegexpTokenizer(r"\w+")
 from nltk.corpus import stopwords
 nltk.download('stopwords')
 from nltk.stem import PorterStemmer 
 ps = PorterStemmer()
-
 from collections import defaultdict
 import pickle
-
+import math
 from tqdm import tqdm # monitoring progress
-
 import time
 from joblib import Parallel, delayed # parallel processing
 
@@ -61,7 +59,29 @@ def htmls_by_urls(urls_txt, folder):
             with open(al_folder, 'w', encoding='utf-8') as g:
                 g.write(html.text)
 
-                
+def retriveTSV(folder):
+    tsvfile = os.listdir(folder)
+    tsvfile = [folder+"/"+ i for i in tsvfile if i.endswith('.tsv')]
+    dataset = pd.read_csv(tsvfile[0],sep='\t')
+    for tsvid in range(1,len(tsvfile)):
+        df1 = pd.read_csv(tsvfile[tsvid],sep='\t')
+        dataset = pd.concat([dataset, df1], ignore_index=True)
+    return dataset
+
+def getHTML(folder):
+    arr = os.listdir(folder)
+    alarr = list()
+    for y in arr:
+        if "rar" in y:
+            continue
+        fiarr = os.listdir(folder+'/'+y)
+        if '.ipynb_checkpoints' in fiarr:
+            fiarr.remove('.ipynb_checkpoints')
+        for i in range(len(fiarr)):
+            fiarr[i] = y+'/'+fiarr[i]
+        alarr.extend(fiarr)
+    return alarr
+            
                 
 ## TOKENIZATION FUNCTION---------------------------------------------------------------------------------------------------------/
 def tokenize(description):
@@ -176,7 +196,7 @@ def search_engine(query):
     id_2_anime_file.close()
     
     # We filter query (apply tokenizeandclean function and remove duplicates)
-    cleaned_query = list(set(tokenizeandclean(query)))
+    cleaned_query = list(set(clean(tokenize(query))))
         
     listoflists = []
     
