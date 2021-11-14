@@ -195,11 +195,12 @@ def search_engine(query):
     id_2_anime = pickle.load(id_2_anime_file)
     id_2_anime_file.close()
     
-    # We filter query (apply tokenizeandclean function and remove duplicates)
+    # We filter query 
     cleaned_query = list(set(clean(tokenize(query))))
         
     listoflists = []
     
+    # For each word of the query, we insert in the empty listoflists a set of indexes corresponding to anime that include that word in the description
     for i in range(len(cleaned_query)):
         listoflists.append(set(id_2_anime[word_2_id[cleaned_query[i]]]))
         
