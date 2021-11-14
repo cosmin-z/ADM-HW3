@@ -13,7 +13,52 @@ from tqdm import tqdm
 
 
 
-# CLEANING FUNCTION---------------------------------------------------------------------------------------------------------/
+
+## Create folders -----------------------------------------------------------------------------------------------------------------------/
+def createFolders(nameMainFolder,numberSubFolders):
+    for k in range (1, numberSubFolders):
+        path = '{}/page_{}'.format(nameMainFolder, k)
+        os.makedirs(path)
+    
+    
+
+## Get htmls by urls -----------------------------------------------------------------------------------------------------------------------/
+#these data are useful because they allow us to dinwload more data without seem bot for the server
+headers = {
+    'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36",
+    'accept': "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    'referer': "https://myanimelist.net/"
+}
+
+def htmls_by_urls(urls_txt, folder):
+     # urls_txt: string 'https.txt' from previous task
+    # folder: string; eg '/Users/anton/Desktop/ADM/Homework3/html'
+    
+    with open(urls_txt, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    # list of urls
+    list_txt = [line.strip() for line in lines]
+    
+    i = 0 #through this index you can chose the start point of import
+    
+    while i < len(list_txt):
+        url = list_txt[i]
+        # folder where we save html
+        al_folder = '{}/page_{}/{}.html'.format(folder, i//50 +1, i+1)
+        # download html
+        html = requests.get(url, headers)
+        print(i)
+        if(html.status_code != 200) : 
+            time.sleep(120)
+            print('error', html.status_code)
+        else:
+            i += 1
+            with open(al_folder, 'w', encoding='utf-8') as g:
+                g.write(html.text)
+
+                
+                
+## CLEANING FUNCTION---------------------------------------------------------------------------------------------------------/
 def tokenizeandclean(description):
     # input: string
     # output: list of filtered words included in the string
@@ -42,7 +87,7 @@ def tokenizeandclean(description):
 
 
 
-# DICTIONARIES GENERATION---------------------------------------------------------------------------------------------------------/
+## DICTIONARIES GENERATION---------------------------------------------------------------------------------------------------------/
 def dictionaries(dataset):
     # input: anime_df dataframe
     # output 1: the dictionary word_2_id maps word to word identification integer  
@@ -88,7 +133,7 @@ def dictionaries(dataset):
 
 
 
-# SEARCH ENGINE-----------------------------------------------------------------------------------------------------------------------/
+## SEARCH ENGINE-----------------------------------------------------------------------------------------------------------------------/
 def search_engine(query):
     # input: query as string
     # output: list of indexes (anime_df dataframe) of anime whose description contains all the words in the query
@@ -114,48 +159,158 @@ def search_engine(query):
     return anime_intersection
 
 
+## Calculate the value TfIdf----------------------------------------------------------------------------------------------------------------------/
+def calculate_TfIdf(lenghtDictionary, lenghtTerm, numberOfOccurence, wordsDocument):
+    TF = numberOfOccurence / wordsDocument #number of the occurence in the document / #numer of total words in this single document.
+    IDF = math.log10(lenghtDictionary / lenghtTerm) #lenght of dictonarty / number of documents that containg the term j
+    return round(TF*IDF,2) #just two decimal
 
-# Create folders -----------------------------------------------------------------------------------------------------------------------/
-def createFolders(nameMainFolder,numberSubFolders):
-    for k in range (1, numberSubFolders):
-    path = '{}/page_{}'.format(nameMainFolder, k)
-    os.makedirs(path)
-    
-    
+## Calculate the number of word occurence in a document-------------------------------------------------------------------------------------------/
+def number_occurence(document, word):
+    return sum( word in s for s in document) #sum the occurence of a word in a document
 
-# Get htmls by urls -----------------------------------------------------------------------------------------------------------------------/
-#these data are useful because they allow us to dinwload more data without seem bot for the server
-headers = {
-    'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36",
-    'accept': "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
-    'referer': "https://myanimelist.net/"
-}
 
-def htmls_by_urls(urls_txt, folder):
-     # urls_txt: string 'https.txt' from previous task
-    # folder: string; eg '/Users/anton/Desktop/ADM/Homework3/html'
+## Get details for making a new score -----------------------------------------------------------------------------------------------------------/
+# Now we need more information to make the new score
+def query_details():
+    print("You can leave the input empty if you don't want to spicify it")
     
-    with open(urls_txt, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-    # list of urls
-    list_txt = [line.strip() for line in lines]
+    print("Write the keywords that anime has")
+    query = input()
     
-    i = 0 #through this index you can chose the start point of import
+    print("Is it a |TV| series, |movie| or |special|?")
+    Type = input()
+    print("Roughly how many episodes are there?")
+    NumOfEpisodes = input()
+    print("How old is the anime? Choose between |new|, |moderate| and |old|")
+    AgeOfAnime = input()
+    print("How popular is the anime? Choose between |popular|, |moderate| and |not popular|")
+    Popularity = input()
+    print("If there are any, how many related works (seasons, films, specials, manga) are there?")
+    NumOfRelated = input()
+    print("You can specify a voice actor if you want")
+    Voices = input()
+    print("You can specify the name of a staff (producer's name/composer, etc) if you want")
+    Staff = input()
     
-    while i < len(list_txt):
-        url = list_txt[i]
-        # folder where we save html
-        al_folder = '{}/page_{}/{}.html'.format(folder, i//50 +1, i+1)
-        # download html
-        html = requests.get(url, headers)
-        print(i)
-        if(html.status_code != 200) : 
-            time.sleep(120)
-            print('error', html.status_code)
-        else:
-            i += 1
-            with open(al_folder, 'w', encoding='utf-8') as g:
-                g.write(html.text)
+    return query, Type, NumOfEpisodes, AgeOfAnime, Popularity, NumOfRelated, Voices, Staff
 
-                
+
+## LIT_EVAL -----------------------------------------------------------------------------------------------------------/
+# getting the lists from a string, just a normal ast.literal_eval, but with the expection if there are any
+def lit_eval(x):
+    try:
+        return ast.literal_eval(str(x))   
+    except Exception as e:
+        return []
+    
+    
+## The main algorithm to calculate the new score ----------------------------------------------------------------------/
+def new_score(d, d1, Type, NumOfEpisodes, AgeOfAnime, Popularity, NumOfRelated, Voices, Staff):
+    
+    #***********************************************************#
+    #    d = full dataset                                       #
+    #    d1 = query subsection                                  #
+    #    Type = ['TV', 'Movie', 'Special']                      #
+    #    NumOfEpisodes = n/Episodes                             #
+    #    AgeOfAnime = ['new', 'old', 'moderate']                #
+    #    Popularity = ['popular', 'moderate', 'not popular']    #
+    #    NumOfRelated = ['single', 'few seasons', 'many parts'] #
+    #    Voices = [Surname, Name]                               #
+    #    Staff = [Surname, Name]                                #
+    #***********************************************************#
+    
+    df = d1.copy()
+    
+    # Increasing the score if the preferred type is correct
+    if len(Type) > 0: #checking if the type is specified
+        df.loc[df["Type"] == Type, "NewScore"] += 5
+    
+    # Increasing the score if the number of episodes is equal or close to the preferred number
+    if len(NumOfEpisodes) > 0: #checking if the number of episodes is specified
+        NumOfEpisodes = int(NumOfEpisodes) #query was written in str, change to int
+        df.loc[np.array(df['Episodes'])-NumOfEpisodes == 0, "NewScore"] += 10 # if the num of episodes match, get the most score
+        df.loc[pd.Series(list(abs(np.array(d['Episodes'])-NumOfEpisodes))).between(1, 6)]["NewScore"] += 7 #closer the value, bigger the score
+        df.loc[pd.Series(abs(np.array(d['Episodes'])-NumOfEpisodes)).between(7, 12)]["NewScore"] += 4
+        df.loc[pd.Series(abs(np.array(d['Episodes'])-NumOfEpisodes)).between(13, 24)]["NewScore"] += 2
+        if NumOfEpisodes > 100: #for specifically long animes make this kind of bonus points
+            df.loc[np.array(df['Episodes']) >= 100, "Score"] += 10
+    
+    # Increasing the score if the age of an anime is in the preferred range
+    if len(AgeOfAnime) > 0: #checking if the age of an anime is specified
+        if AgeOfAnime == "new": 
+            # I consider the animes that released after 2015 as "new"
+            # but not that old animes get some points too, because you can't be too specific
+            df.loc[df['Release date'] > "2015-01-01", "NewScore"] += 5
+            df.loc[(df['Release date'] > "2010-01-01") & (df['Release date'] < "2014-12-31"), "NewScore"] += 2
+        elif AgeOfAnime == "moderate":
+            df.loc[(df['Release date'] > "2008-01-01") & (df['Release date'] < "2014-12-31"), "NewScore"] += 5
+            df.loc[(df['Release date'] > "2015-01-01") & (df['Release date'] < "2021-12-31"), "NewScore"] += 2
+            df.loc[(df['Release date'] > "2000-01-01") & (df['Release date'] < "2007-12-31"), "NewScore"] += 2
+        elif AgeOfAnime == "old":
+            # I consider the animes that released before 2000 as "old"
+            df.loc[df['Release date'] < "1999-12-31", "NewScore"] += 5
+            df.loc[(df['Release date'] > "2000-01-01") & (df['Release date'] < "2007-12-31"), "NewScore"] += 2
         
+    # Increasing the score if the popularity of an anime is in the preferred range
+    if len(Popularity) > 0: #checking if the popularity is specified
+        # of course the popularity depends on the number of people that watched/watching/planning to watch the anime
+        if Popularity == "popular": 
+            df.loc[df['Members'] > 1000000, "NewScore"] += 10
+            df.loc[(df['Members'] > 500000) & (df['Members'] < 999999), "NewScore"] += 8
+            df.loc[(df['Members'] > 100000) & (df['Members'] < 499999), "NewScore"] += 5
+            df.loc[(df['Members'] > 10000) & (df['Members'] < 99999), "NewScore"] += 2
+        elif Popularity == "moderate":
+            df.loc[(df['Members'] > 500000) & (df['Members'] < 999999), "NewScore"] += 5
+            df.loc[(df['Members'] > 100000) & (df['Members'] < 499999), "NewScore"] += 8
+            df.loc[(df['Members'] > 10000) & (df['Members'] < 99999), "NewScore"] += 5
+        elif Popularity == "not popular":
+            df.loc[df['Members'] < 10000, "NewScore"] += 10
+            df.loc[(df['Members'] > 10000) & (df['Members'] < 99999), "NewScore"] += 8
+            df.loc[(df['Members'] > 100000) & (df['Members'] < 499999), "NewScore"] += 4
+            
+    # Increasing the score if the number of related works is close to the preferred number
+    if len(NumOfRelated) > 0: #checking if the number of related works is specified
+        # Some animes can have sequels, prequels, adaptations, OVAs, specials, etc. 
+        # so people can specify how many of them there might be
+        NumOfRelated = int(NumOfRelated)
+        df['temp'] = df.Related.apply(lambda x: lit_eval(x)) # str to list and store it in temporary column
+        df.loc[df['temp'].str.len()-NumOfRelated == 0, "NewScore"] += 6     # Most people don't know the exact number
+        df.loc[abs(df['temp'].str.len()-NumOfRelated) < 1, "NewScore"] += 5 # so the score is not scattered that much
+        df.loc[abs(df['temp'].str.len()-NumOfRelated) < 3, "NewScore"] += 3
+        df.loc[abs(df['temp'].str.len()-NumOfRelated) < 5, "NewScore"] += 1
+        # If a person knows that the anime has a lot of related stuff, then we can give it a bigger score
+        if NumOfRelated > 15:
+            df.loc[df['temp'].str.len() > 15, "NewScore"] += 10
+        # delete the temporary column
+        del df['temp']
+    
+    # Increasing the score if the preferred voice actor is in the anime
+    if len(Voices) > 0: #checking if the preferred VA is specified
+        df['temp'] = df.Voices.apply(lambda x: lit_eval(x)) # str to list and store it in temporary column
+        ind = []
+        i = 0
+        for x in df['temp']: # parsing list of lists and getting the preferred indices
+            if Voices in x:
+                ind.append(i)
+            i += 1
+        df.iloc[ind]['NewScore'] += 8
+        # delete the temporary column and list
+        del df['temp']
+        del ind
+    
+    # Increasing the score if the preferred staff member worked for the anime creation
+    if len(Staff) > 0: #checking if the preferred staff member is specified
+        df['temp'] = df.Staff.apply(lambda x: lit_eval(x)) # str to list and store it in temporary column
+        ind = []
+        i = 0
+        for x in df['temp']: # parsing list of lists and getting the preferred indices
+            if Staff in x:
+                ind.append(i)
+            i += 1
+        df.loc[ind, "NewScore"] += 8
+        # delete the temporary column and list
+        del df['temp']
+        del ind
+        
+    return df    
