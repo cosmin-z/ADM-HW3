@@ -1,20 +1,19 @@
 import pandas as pd
-
 import nltk
 tokenizer = nltk.RegexpTokenizer(r"\w+")
 from nltk.corpus import stopwords
 nltk.download('stopwords')
+
 from nltk.stem import PorterStemmer 
 ps = PorterStemmer()
 
 from collections import defaultdict
 import pickle
-
 from tqdm import tqdm
 
 
 
-# CLEANING FUNCTION
+# CLEANING FUNCTION---------------------------------------------------------------------------------------------------------/
 def tokenizeandclean(description):
     # input: string
     # output: list of filtered words included in the string
@@ -43,7 +42,7 @@ def tokenizeandclean(description):
 
 
 
-# DICTIONARIES GENERATION
+# DICTIONARIES GENERATION---------------------------------------------------------------------------------------------------------/
 def dictionaries(dataset):
     # input: anime_df dataframe
     # output 1: the dictionary word_2_id maps word to word identification integer  
@@ -89,7 +88,7 @@ def dictionaries(dataset):
 
 
 
-# SEARCH ENGINE
+# SEARCH ENGINE-----------------------------------------------------------------------------------------------------------------------/
 def search_engine(query):
     # input: query as string
     # output: list of indexes (anime_df dataframe) of anime whose description contains all the words in the query
@@ -113,3 +112,49 @@ def search_engine(query):
     anime_intersection = list(set.intersection(*listoflists))
     
     return anime_intersection
+
+
+
+# Create folders -----------------------------------------------------------------------------------------------------------------------/
+def createFolders(nameMainFolder,numberSubFolders):
+    for k in range (1, numberSubFolders):
+    path = '{}/page_{}'.format(nameMainFolder, k)
+    os.makedirs(path)
+    
+    
+
+# Get htmls by urls -----------------------------------------------------------------------------------------------------------------------/
+headers = {
+    'user-agent': "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.69 Safari/537.36",
+    'accept': "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+    'referer': "https://myanimelist.net/"
+} #these data are useful because they allow us to dinwload more data without seem bot for the server
+
+def htmls_by_urls(urls_txt, folder):
+     # urls_txt: string 'https.txt' from previous task
+    # folder: string; eg '/Users/anton/Desktop/ADM/Homework3/html'
+    
+    with open(urls_txt, 'r', encoding='utf-8') as f:
+        lines = f.readlines()
+    # list of urls
+    list_txt = [line.strip() for line in lines]
+    
+    i = 0 #through this index you can chose the start point of import
+    
+    while i < len(list_txt):
+        url = list_txt[i]
+        # folder where we save html
+        al_folder = '{}/page_{}/{}.html'.format(folder, i//50 +1, i+1)
+        # download html
+        html = requests.get(url, headers)
+        print(i)
+        if(html.status_code != 200) : 
+            time.sleep(120)
+            print('error', html.status_code)
+        else:
+            i += 1
+            with open(al_folder, 'w', encoding='utf-8') as g:
+                g.write(html.text)
+
+                
+        
